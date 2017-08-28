@@ -181,3 +181,7 @@ class ServeProtocol(asyncio.Protocol):
             self.buffer = self.buffer[index + 1:]
             self.connector._message_received(str(message, 'UTF-8'))
             index = self.buffer.find(b'\n')
+
+    def connection_lost(self, exc):
+        self.connector._connection = None
+        self.connector._status_change('offline')
