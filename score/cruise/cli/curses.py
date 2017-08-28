@@ -67,12 +67,24 @@ class ServersMenu:
     @asyncio.coroutine
     def handle_keypress(self, char):
         needs_refresh = False
-        if char == curses.KEY_DOWN:
-            needs_refresh = yield from self.select_next_server()
-        elif char == curses.KEY_UP:
-            needs_refresh = yield from self.select_previous_server()
-        elif char == ord('r'):
-            yield from self.servers[self.index].restart()
+        try:
+            if char == curses.KEY_DOWN:
+                needs_refresh = yield from self.select_next_server()
+            elif char == curses.KEY_UP:
+                needs_refresh = yield from self.select_previous_server()
+            elif char == ord('r'):
+                yield from self.servers[self.index].restart()
+            elif char == ord('s'):
+                yield from self.servers[self.index].start()
+            elif char == ord('p'):
+                yield from self.servers[self.index].pause()
+            elif char == ord('k'):
+                yield from self.servers[self.index].stop()
+        except ConnectionError:
+            # no need to handle connection errors here, the status of the server
+            # connectino will be updated and propagated back to us through our
+            # state_change_callback
+            pass
         if needs_refresh:
             self.window.refresh()
 
@@ -95,6 +107,10 @@ class ServersMenu:
         self.draw_button(self.index)
         yield from self.main.details.set_server(self.servers[self.index])
         return True
+
+    @asyncio.coroutine
+    def cleanup(self):
+        pass
 
 
 class ServerDetails:
@@ -151,6 +167,10 @@ class ServerDetails:
     def _status_change(self, status):
         yield from self.draw_details(status)
 
+    @asyncio.coroutine
+    def cleanup(self):
+        self.server.remove_status_change_callback(self._status_change)
+
 
 class MainWindow:
 
@@ -161,7 +181,14 @@ class MainWindow:
         self.details = ServerDetails(self)
 
     def run(self):
-        self.cruise.loop.run_until_complete(self._run())
+        loop = self.cruise.loop
+        loop.run_until_complete(self._run())
+        pending_tasks = [t for t in asyncio.Task.all_tasks(loop)
+                         if not t.done()]
+        while pending_tasks:
+            loop.run_until_complete(pending_tasks[0])
+            pending_tasks = [t for t in asyncio.Task.all_tasks(loop)
+                             if not t.done()]
 
     @asyncio.coroutine
     def _run(self):
@@ -174,6 +201,8 @@ class MainWindow:
             else:
                 yield from self.menu.handle_keypress(char)
             char = yield from self._getch()
+        yield from self.menu.cleanup()
+        yield from self.details.cleanup()
 
     @asyncio.coroutine
     def redraw(self):
