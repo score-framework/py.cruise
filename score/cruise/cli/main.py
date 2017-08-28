@@ -62,6 +62,7 @@ def list(clickctx):
         print('-' * (line_length + 2))
         for line in status_lines:
             print(' ' + line)
+        print('')
 
 
 @main.command('restart')
