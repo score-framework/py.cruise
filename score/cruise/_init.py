@@ -27,10 +27,10 @@
 from score.init import ConfiguredModule, extract_conf, parse_host_port
 from .service import SocketConnector
 import asyncio
+from collections import OrderedDict
 
 
-defaults = {
-}
+defaults = OrderedDict()
 
 
 def init(confdict):
