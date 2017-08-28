@@ -27,6 +27,7 @@
 import abc
 import asyncio
 import json
+from collections import OrderedDict
 
 
 class ServeConnector(metaclass=abc.ABCMeta):
@@ -153,7 +154,7 @@ class SocketConnector(ServeConnector):
         return self._connection
 
     def _message_received(self, message):
-        self._status_change(json.loads(message))
+        self._status_change(json.loads(message, object_pairs_hook=OrderedDict))
 
     def _status_change(self, status):
         if self.status == status:
