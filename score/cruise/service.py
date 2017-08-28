@@ -77,7 +77,7 @@ class SocketConnector(ServeConnector):
         self.port = port
         self.status = None
         self._connection = None
-        self._connecting = False
+        self._connect_loop_running = False
 
     @asyncio.coroutine
     def start(self):
@@ -127,31 +127,40 @@ class SocketConnector(ServeConnector):
     @asyncio.coroutine
     def _get_connection(self):
         if self._connection is None:
-            self._connection = self.loop.create_task(self._connect())
-            try:
-                self._connection = (yield from self._connection)[0]
-            except ConnectionRefusedError:
-                self._status_change('offline')
-                raise
-            connection = self._connection
+            connection = yield from self._connect()
         elif asyncio.iscoroutine(self._connection):
-            try:
-                connection = (yield from self._connection)[0]
-            except ConnectionRefusedError:
-                self._status_change('offline')
-                raise
+            connection = (yield from self._connection)[0]
         else:
             connection = self._connection
         return connection
 
     @asyncio.coroutine
     def _connect(self):
-        def protocol_factory():
-            return ServeProtocol(self)
         self._connection = self.loop.create_connection(
-            protocol_factory, self.host, self.port)
-        self._connection = yield from self._connection
+            lambda: ServeProtocol(self), self.host, self.port)
+        try:
+            self._connection = (yield from self._connection)[0]
+        except ConnectionError:
+            self._connection = None
+            self._status_change('offline')
+            raise
         return self._connection
+
+    @asyncio.coroutine
+    def _connect_loop(self):
+        if self._connect_loop_running:
+            return
+        self._connect_loop_running = True
+
+        def is_connected():
+            return (self._connection is not None and
+                    not asyncio.iscoroutine(self._connection))
+        while not is_connected() and self.status_change_callbacks:
+            try:
+                yield from self._connect()
+            except ConnectionError:
+                yield from asyncio.sleep(.2)
+        self._connect_loop_running = False
 
     def _message_received(self, message):
         self._status_change(json.loads(message, object_pairs_hook=OrderedDict))
@@ -164,6 +173,18 @@ class SocketConnector(ServeConnector):
             result = callback(status)
             if asyncio.iscoroutine(result):
                 self.loop.create_task(result)
+
+    def _connection_lost(self):
+        self._connection = None
+        self._status_change('offline')
+        if not self.status_change_callbacks:
+            return
+        self.loop.create_task(self._connect_loop())
+
+    def add_status_change_callback(self, callback):
+        super().add_status_change_callback(callback)
+        if self._connection is None:
+            self.loop.create_task(self._connect_loop())
 
 
 class ServeProtocol(asyncio.Protocol):
@@ -183,5 +204,4 @@ class ServeProtocol(asyncio.Protocol):
             index = self.buffer.find(b'\n')
 
     def connection_lost(self, exc):
-        self.connector._connection = None
-        self.connector._status_change('offline')
+        self.connector._connection_lost()
