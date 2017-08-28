@@ -92,6 +92,10 @@ def _init(clickctx):
         del conf['score.init']['autoimport']
     except KeyError:
         pass
+    if 'cruise' not in conf and 'serve' in conf and 'monitor' in conf['serve']:
+        conf['cruise'] = {
+            'server.local.monitor': conf['serve']['monitor'],
+        }
     return score_init(conf, overrides=overrides).cruise
 
 
