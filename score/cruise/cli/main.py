@@ -26,6 +26,7 @@
 
 
 import click
+import asyncio
 from score.init import parse_config_file, init as score_init
 
 
@@ -63,6 +64,16 @@ def list(clickctx):
         for line in status_lines:
             print(' ' + line)
         print('')
+    _cleanup_loop(cruise.loop)
+
+
+def _cleanup_loop(loop):
+    pending_tasks = [t for t in asyncio.Task.all_tasks(loop)
+                     if not t.done()]
+    while pending_tasks:
+        loop.run_until_complete(pending_tasks[0])
+        pending_tasks = [t for t in asyncio.Task.all_tasks(loop)
+                         if not t.done()]
 
 
 @main.command('restart')
@@ -79,6 +90,7 @@ def restart(clickctx, server):
         cruise.loop.run_until_complete(server.restart())
     except ConnectionRefusedError:
         raise click.ClickException('Server not running')
+    _cleanup_loop(cruise.loop)
 
 
 def _init(clickctx):
