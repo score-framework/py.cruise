@@ -67,15 +67,6 @@ def list(clickctx):
     _cleanup_loop(cruise.loop)
 
 
-def _cleanup_loop(loop):
-    pending_tasks = [t for t in asyncio.Task.all_tasks(loop)
-                     if not t.done()]
-    while pending_tasks:
-        loop.run_until_complete(pending_tasks[0])
-        pending_tasks = [t for t in asyncio.Task.all_tasks(loop)
-                         if not t.done()]
-
-
 @main.command('restart')
 @click.argument('server')
 @click.pass_context
@@ -151,6 +142,15 @@ def _init(clickctx):
             'server.local.monitor': conf['serve']['monitor'],
         }
     return score_init(conf, overrides=overrides).cruise
+
+
+def _cleanup_loop(loop):
+    pending_tasks = [t for t in asyncio.Task.all_tasks(loop)
+                     if not t.done()]
+    while pending_tasks:
+        loop.run_until_complete(pending_tasks[0])
+        pending_tasks = [t for t in asyncio.Task.all_tasks(loop)
+                         if not t.done()]
 
 
 if __name__ == '__main__':
