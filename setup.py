@@ -39,7 +39,7 @@ setup(
     author_email='score@strg.at',
     url='http://score-framework.org',
     keywords='score framework deployment',
-    packages=['score', 'score.cruise'],
+    packages=['score', 'score.cruise', 'score.cruise.cli'],
     namespace_packages=['score'],
     zip_safe=False,
     license='LGPL',
