@@ -119,7 +119,7 @@ class SocketConnector(ServeConnector):
             with (yield from condition):
                 yield from condition.wait_for(lambda: result is not None)
             return result
-        except ConnectionRefusedError:
+        except (ConnectionError, ConnectionRefusedError):
             return 'offline'
         finally:
             self.remove_status_change_callback(callback)
@@ -140,7 +140,7 @@ class SocketConnector(ServeConnector):
             lambda: ServeProtocol(self), self.host, self.port)
         try:
             self._connection = (yield from self._connection)[0]
-        except ConnectionError:
+        except (ConnectionError, ConnectionRefusedError):
             self._connection = None
             self._status_change('offline')
             raise
@@ -158,7 +158,7 @@ class SocketConnector(ServeConnector):
         while not is_connected() and self.status_change_callbacks:
             try:
                 yield from self._connect()
-            except ConnectionError:
+            except (ConnectionError, ConnectionRefusedError):
                 yield from asyncio.sleep(.2)
         self._connect_loop_running = False
 
