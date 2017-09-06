@@ -84,8 +84,7 @@ def restart(clickctx, server):
     Restarts a server
     """
     cruise = _init(clickctx)
-    name = server
-    server = next(server for server in cruise.servers if server.name == name)
+    server = _get_server(cruise, server)
     try:
         cruise.loop.run_until_complete(server.restart())
     except ConnectionRefusedError:
@@ -101,8 +100,7 @@ def stop(clickctx, server):
     Restarts a server
     """
     cruise = _init(clickctx)
-    name = server
-    server = next(server for server in cruise.servers if server.name == name)
+    server = _get_server(cruise, server)
     try:
         cruise.loop.run_until_complete(server.stop())
     except ConnectionRefusedError:
@@ -118,8 +116,7 @@ def status(clickctx, server):
     Restarts a server
     """
     cruise = _init(clickctx)
-    name = server
-    server = next(server for server in cruise.servers if server.name == name)
+    server = _get_server(cruise, server)
     status = cruise.loop.run_until_complete(server.get_status())
     if isinstance(status, str):
         print(status)
@@ -127,6 +124,15 @@ def status(clickctx, server):
         for service, state in status.items():
             print('%s: %s' % (service, state))
     _cleanup_loop(cruise.loop)
+
+
+def _get_server(cruise, name):
+    try:
+        return next(server for server in cruise.servers if server.name == name)
+    except StopIteration:
+        raise click.ClickException(
+            'No server called `%s` found in score.cruise configuration' %
+            (name,))
 
 
 def _init(clickctx):
