@@ -110,6 +110,25 @@ def stop(clickctx, server):
     _cleanup_loop(cruise.loop)
 
 
+@main.command('status')
+@click.argument('server')
+@click.pass_context
+def status(clickctx, server):
+    """
+    Restarts a server
+    """
+    cruise = _init(clickctx)
+    name = server
+    server = next(server for server in cruise.servers if server.name == name)
+    status = cruise.loop.run_until_complete(server.get_status())
+    if isinstance(status, str):
+        print(status)
+    else:
+        for service, state in status.items():
+            print('%s: %s' % (service, state))
+    _cleanup_loop(cruise.loop)
+
+
 def _init(clickctx):
     conf = parse_config_file(clickctx.obj['conf'].path)
     overrides = {
