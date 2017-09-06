@@ -159,7 +159,7 @@ class SocketConnector(ServeConnector):
             try:
                 yield from self._connect()
             except (ConnectionError, ConnectionRefusedError):
-                yield from asyncio.sleep(.2)
+                yield from asyncio.sleep(.2, loop=self.loop)
         self._connect_loop_running = False
 
     def _message_received(self, message):
