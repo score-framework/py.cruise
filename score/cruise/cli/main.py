@@ -93,6 +93,23 @@ def restart(clickctx, server):
     _cleanup_loop(cruise.loop)
 
 
+@main.command('stop')
+@click.argument('server')
+@click.pass_context
+def stop(clickctx, server):
+    """
+    Restarts a server
+    """
+    cruise = _init(clickctx)
+    name = server
+    server = next(server for server in cruise.servers if server.name == name)
+    try:
+        cruise.loop.run_until_complete(server.stop())
+    except ConnectionRefusedError:
+        raise click.ClickException('Server not running')
+    _cleanup_loop(cruise.loop)
+
+
 def _init(clickctx):
     conf = parse_config_file(clickctx.obj['conf'].path)
     overrides = {
