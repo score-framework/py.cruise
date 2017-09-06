@@ -105,7 +105,7 @@ class SocketConnector(ServeConnector):
         if self.status is not None:
             return self.status
         result = None
-        condition = asyncio.Condition()
+        condition = asyncio.Condition(loop=self.loop)
 
         @asyncio.coroutine
         def callback(status):
