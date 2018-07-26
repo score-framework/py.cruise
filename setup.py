@@ -1,4 +1,4 @@
-# Copyright © 2017 STRG.AT GmbH, Vienna, Austria
+# Copyright © 2017,2018 STRG.AT GmbH, Vienna, Austria
 #
 # This file is part of the The SCORE Framework.
 #
@@ -33,7 +33,7 @@ with open(os.path.join(here, 'README.rst')) as f:
 
 setup(
     name='score.cruise',
-    version='0.0.6',
+    version='0.0.7',
     long_description=README,
     author='strg.at',
     author_email='score@strg.at',
